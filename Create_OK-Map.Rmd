@@ -1,0 +1,80 @@
+---
+title: "map_sites"
+author: "CJR"
+date: "2023-11-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(here)
+library(tidyverse)
+library(ggmap)
+library(sf)
+library(tigris)
+```
+
+```{r read in data with points}
+sites <- read_csv(here("analysis/data/derived_data/FullTidiedEnvData.csv"))|>
+  distinct(lat_long)|>
+  separate_wider_delim(cols = lat_long, names = c("lat", "lon"), delim = ",")|>
+  mutate(across(c("lat", "lon"), as.numeric)) # MUST set to numeric as previous code gets separatedd into character vectors
+
+```
+
+Shapefiles can be downloaded here: https://www.epa.gov/eco-research/ecoregion-download-files-state-region-6
+
+```{r read in shape files}
+ok_ecor <- st_read(here("analysis/data/raw_data/ok_eco_l3/ok_eco_l3.shp"))|>
+  st_transform(4326)
+ok_shp <- tigris::states(cb = TRUE, resolution = "20m", class = "sf") %>%
+  filter(STUSPS == "OK")|>
+  st_transform(4326)
+
+```
+
+This is actually not necessary unless we want to get a basemap from Google's map services.
+```{r read in basemap}
+#key <- read_delim(key_file, delim = "/t",col_names = FALSE)|>pull()
+#Google's API to use, e.g., Stamen Maps, is free but must have a registered key
+# I manually set 'key_file' to the location of my key on each computer I work on
+# but do not want that key to be public on github.
+#register_google(key = key)
+#terr_map <- get_map(location = c(lat = 36, lon = -92), maptype = "satellite", zoom =7)
+
+```
+
+Make the map
+```{r}
+
+
+ok_map <- ggplot()+ #base ggplot call
+  #call layer with our ecoregion shapes (ecoregions in column NA_L3NAME)
+  geom_sf(data = ok_ecor, aes(color = NA_L3NAME, fill = NA_L3NAME),
+          inherit.aes = FALSE, alpha = 0.5, linewidth = 1)+
+  #call layer to map our oklahoma outline 
+  geom_sf(data = ok_shp, inherit.aes = FALSE, alpha = 0,
+          color = "black", linewidth = 1.5)+
+  #call layer to map site points - we could link these to any characteristics of the site (e.g., median biomass, precip) and use shapes or color or size to show that additional info 
+  geom_point(data = sites, aes(y = lat, x = lon),
+             inherit.aes = FALSE,  size = 4, shape = 21, color = "black")+
+  #finally, mess with the theme to get the overall look in better shape
+  theme_classic()+
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title = element_blank(),
+        legend.title = element_blank(),
+        legend.position = c(0.17,0.34),
+        legend.background = element_blank(),
+        legend.text = element_text(size = 12, face = "bold"),
+        axis.line = element_blank())
+
+#write the map to file - I'm just saying this is Fig 1
+ggsave(ok_map, file = here("analysis/paper/Fig1_OK-Map.png"), width = 8, height = 4.5)
+  
+```
+
+   
+
+
+
