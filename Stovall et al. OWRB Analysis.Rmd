@@ -1,0 +1,1062 @@
+---
+title: "Stovall et al. OWRB Analysis"
+author: "JKS"
+date: "2024-06-07"
+output: pdf_document
+---
+
+This R Markdown file includes all of the code used to perform the statistical analyses and produce the figures for Stovall et al. "Regional and local drivers of phytoplankton community composition and biodiversity in Oklahoma lakes".
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(vegan)
+library(here)
+library(ggrepel)
+library(ggforce)
+library(corrplot)
+library(ggplot2)
+library(scales)
+library(lme4)
+library(ggpubr)
+library(emmeans)
+library(correlation)
+```
+
+```{r}
+here() 
+here::i_am("analysis/paper/OWRB Manuscript Results.Rmd") 
+```
+
+```{r}
+percentcomp_group<-read.csv("percentcomp_group.csv")
+
+ggplot(percentcomp_group, aes(x = PHYTOPLANKTON_GROUP, y = PERCENT_TOTAL_BV)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(position = position_jitter(width = 0.2), alpha = 0.3) +  
+  labs(y = "Percent of Total Biovolume") +  
+  theme_classic() +
+  labs(x = NULL) + 
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1), 
+    text = element_text(size = 10)  
+  ) +
+  scale_y_continuous(labels = scales::percent_format(scale = 100, suffix = NULL))  
+
+ggsave("OKboxwhisker_plot.png", height=8.5, width=17, unit = "cm", dpi=600)
+```
+
+```{r}
+landuse_total109<-read.csv("landuse_total109.csv", row.names=1)
+
+(landuse_total109.pearson <- cor(landuse_total109))  
+round(landuse_total109.pearson, 2)  
+
+corrplot(landuse_total109.pearson, method = "color")
+
+env_total_no_na<-read.csv("env_total_no_na.csv", row.names=1)
+
+(env_total_no_na.pearson <- cor(env_total_no_na))  
+round(env_total_no_na.pearson, 2) 
+
+corrplot(env_total_no_na.pearson, method = "color")
+```
+
+```{r}
+phytogroup_land109 <-read.csv("phytogroup_land109.csv", row.names=1)
+```
+
+```{r}
+(phytogroup_land109.pearson <- cor(phytogroup_land109))  
+round(phytogroup_land109.pearson, 2)  
+
+corrplot(phytogroup_land109.pearson, method = "color", addCoef.col="black", tl.cex=0.7, tl.col="black", number.cex = 0.5, number.digits=1)
+
+rows_of_interest <- c("Cyanobacteria", "Chlorophyta", "Bacillariophyta", "Charophyta", "Cryptophyta", "Haptophyta", "Ochrophyta", "Euglenozoa", "Miozoa")
+cols_of_interest <- c("UL", "FR", "GS", "AG", "WL", "LT", "LN", "PR")
+
+phytogroup_land109_subset <- phytogroup_land109.pearson[rows_of_interest, cols_of_interest]
+
+png("figure3a.png", width = 10, height = 8, unit="cm", res=600)  
+
+corrplot(phytogroup_land109_subset, method = "color", tl.cex=1.5, tl.col="black", number.cex = 2, number.digits=2,   cl.cex = 1)
+```
+
+```{r}
+cyano <- select(phytogroup_land109,Cyanobacteria, UL, FR, GS, AG, WL, LT, LN, PR)
+
+x_vars <- colnames(cyano)[colnames(cyano) != "Cyanobacteria"]
+
+regression_results <- data.frame(dependent_variable = character(),
+                                  independent_variable = character(),
+                                  coefficient = numeric(),
+                                  p_value = numeric(),
+                                  stringsAsFactors = FALSE)
+
+for (x_var in x_vars) {
+  lm_result <- lm(paste("Cyanobacteria ~", x_var), data = cyano)
+  
+  result_row <- data.frame(
+    dependent_variable = "Cyanobacteria",
+    independent_variable = x_var,
+    coefficient = coef(lm_result)[2],  
+    p_value = summary(lm_result)$coefficients[2, 4] 
+  )
+  
+  regression_results <- rbind(regression_results, result_row)
+}
+
+print(regression_results)
+```
+
+```{r}
+green <- select(phytogroup_land109,Chlorophyta, UL, FR, GS, AG, WL, LT, LN, PR)
+
+x_vars <- colnames(green)[colnames(green) != "Chlorophyta"]
+
+regression_results <- data.frame(dependent_variable = character(),
+                                  independent_variable = character(),
+                                  coefficient = numeric(),
+                                  p_value = numeric(),
+                                  stringsAsFactors = FALSE)
+
+for (x_var in x_vars) {
+  lm_result <- lm(paste("Chlorophyta ~", x_var), data = green)
+  
+  result_row <- data.frame(
+    dependent_variable = "Chlorophyta",
+    independent_variable = x_var,
+    coefficient = coef(lm_result)[2],  
+    p_value = summary(lm_result)$coefficients[2, 4]  
+  )
+  
+  regression_results <- rbind(regression_results, result_row)
+}
+
+print(regression_results)
+```
+
+```{r}
+diatom <- select(phytogroup_land109,Bacillariophyta, UL, FR, GS, AG, WL, LT, LN, PR)
+
+x_vars <- colnames(diatom)[colnames(diatom) != "Bacillariophyta"]
+
+regression_results <- data.frame(dependent_variable = character(),
+                                  independent_variable = character(),
+                                  coefficient = numeric(),
+                                  p_value = numeric(),
+                                  stringsAsFactors = FALSE)
+
+for (x_var in x_vars) {
+  lm_result <- lm(paste("Bacillariophyta ~", x_var), data = diatom)
+  
+  result_row <- data.frame(
+    dependent_variable = "Bacillariophyta",
+    independent_variable = x_var,
+    coefficient = coef(lm_result)[2],  
+    p_value = summary(lm_result)$coefficients[2, 4]  
+  )
+  
+  regression_results <- rbind(regression_results, result_row)
+}
+
+print(regression_results)
+```
+
+```{r}
+charophyta <- select(phytogroup_land109,Charophyta, UL, FR, GS, AG, WL, LT, LN, PR)
+
+x_vars <- colnames(charophyta)[colnames(charophyta) != "Charophyta"]
+
+regression_results <- data.frame(dependent_variable = character(),
+                                  independent_variable = character(),
+                                  coefficient = numeric(),
+                                  p_value = numeric(),
+                                  stringsAsFactors = FALSE)
+
+for (x_var in x_vars) {
+  lm_result <- lm(paste("Charophyta ~", x_var), data = charophyta)
+  
+  result_row <- data.frame(
+    dependent_variable = "Charophyta",
+    independent_variable = x_var,
+    coefficient = coef(lm_result)[2],  
+    p_value = summary(lm_result)$coefficients[2, 4] 
+  )
+  
+  regression_results <- rbind(regression_results, result_row)
+}
+
+print(regression_results)
+```
+
+```{r}
+cryptophyta <- select(phytogroup_land109,Cryptophyta, UL, FR, GS, AG, WL, LT, LN, PR)
+
+x_vars <- colnames(cryptophyta)[colnames(cryptophyta) != "Cryptophyta"]
+
+regression_results <- data.frame(dependent_variable = character(),
+                                  independent_variable = character(),
+                                  coefficient = numeric(),
+                                  p_value = numeric(),
+                                  stringsAsFactors = FALSE)
+
+for (x_var in x_vars) {
+  lm_result <- lm(paste("Cryptophyta ~", x_var), data = cryptophyta)
+  
+  result_row <- data.frame(
+    dependent_variable = "Cryptophyta",
+    independent_variable = x_var,
+    coefficient = coef(lm_result)[2],  
+    p_value = summary(lm_result)$coefficients[2, 4]  
+  )
+  
+  regression_results <- rbind(regression_results, result_row)
+}
+
+print(regression_results)
+```
+
+```{r}
+haptophyta <- select(phytogroup_land109,Haptophyta, UL, FR, GS, AG, WL, LT, LN, PR)
+
+x_vars <- colnames(haptophyta)[colnames(haptophyta) != "Haptophyta"]
+
+regression_results <- data.frame(dependent_variable = character(),
+                                  independent_variable = character(),
+                                  coefficient = numeric(),
+                                  p_value = numeric(),
+                                  stringsAsFactors = FALSE)
+
+for (x_var in x_vars) {
+  lm_result <- lm(paste("Haptophyta ~", x_var), data = haptophyta)
+  
+  result_row <- data.frame(
+    dependent_variable = "Haptophyta",
+    independent_variable = x_var,
+    coefficient = coef(lm_result)[2],  
+    p_value = summary(lm_result)$coefficients[2, 4]  
+  )
+  
+  regression_results <- rbind(regression_results, result_row)
+}
+
+print(regression_results)
+```
+
+```{r}
+ochrophyta <- select(phytogroup_land109, Ochrophyta, UL, FR, GS, AG, WL, LT, LN, PR)
+
+x_vars <- colnames(ochrophyta)[colnames(ochrophyta) != "Ochrophyta"]
+
+regression_results <- data.frame(dependent_variable = character(),
+                                  independent_variable = character(),
+                                  coefficient = numeric(),
+                                  p_value = numeric(),
+                                  stringsAsFactors = FALSE)
+
+for (x_var in x_vars) {
+  lm_result <- lm(paste("Ochrophyta ~", x_var), data = ochrophyta)
+  
+  result_row <- data.frame(
+    dependent_variable = "Ochrophyta",
+    independent_variable = x_var,
+    coefficient = coef(lm_result)[2],  
+    p_value = summary(lm_result)$coefficients[2, 4]  
+  )
+  
+  regression_results <- rbind(regression_results, result_row)
+}
+
+print(regression_results)
+```
+
+```{r}
+euglenozoa <- select(phytogroup_land109, Euglenozoa, UL, FR, GS, AG, WL, LT, LN, PR)
+
+x_vars <- colnames(euglenozoa)[colnames(euglenozoa) != "Euglenozoa"]
+
+regression_results <- data.frame(dependent_variable = character(),
+                                  independent_variable = character(),
+                                  coefficient = numeric(),
+                                  p_value = numeric(),
+                                  stringsAsFactors = FALSE)
+
+for (x_var in x_vars) {
+  lm_result <- lm(paste("Euglenozoa ~", x_var), data = euglenozoa)
+  
+  result_row <- data.frame(
+    dependent_variable = "Euglenozoa",
+    independent_variable = x_var,
+    coefficient = coef(lm_result)[2],  
+    p_value = summary(lm_result)$coefficients[2, 4]  
+  )
+  
+  regression_results <- rbind(regression_results, result_row)
+}
+
+print(regression_results)
+```
+
+```{r}
+miozoa <- select(phytogroup_land109, Miozoa, UL, FR, GS, AG, WL, LT, LN, PR)
+
+x_vars <- colnames(miozoa)[colnames(miozoa) != "Miozoa"]
+
+regression_results <- data.frame(dependent_variable = character(),
+                                  independent_variable = character(),
+                                  coefficient = numeric(),
+                                  p_value = numeric(),
+                                  stringsAsFactors = FALSE)
+
+for (x_var in x_vars) {
+  lm_result <- lm(paste("Miozoa ~", x_var), data = miozoa)
+  
+  result_row <- data.frame(
+    dependent_variable = "Miozoa",
+    independent_variable = x_var,
+    coefficient = coef(lm_result)[2],  
+    p_value = summary(lm_result)$coefficients[2, 4]  
+  )
+  
+  regression_results <- rbind(regression_results, result_row)
+}
+
+print(regression_results)
+```
+
+```{r}
+phytogroup_wq72 <-read.csv("phytogroup_wq72.csv", row.names=1)
+```
+
+```{r}
+(phytogroup_wq72.pearson <- cor(phytogroup_wq72))  
+round(phytogroup_wq72.pearson, 2)  
+
+corrplot(phytogroup_wq72.pearson, method = "color", addCoef.col="black", tl.cex=0.7, tl.col="black", number.cex = 0.5, number.digits=1)
+
+rows_of_interest <- c("Cyanobacteria", "Chlorophyta", "Bacillariophyta", "Charophyta", "Cryptophyta", "Haptophyta", "Ochrophyta", "Euglenozoa", "Miozoa")
+cols_of_interest <- c("CL", "PS", "TB", "CN", "DO", "pH", "TM", "NOx")
+
+phytogroup_wq72_subset <- phytogroup_wq72.pearson[rows_of_interest, cols_of_interest]
+
+png("figure3b.png", width = 10, height = 8, unit="cm", res=600)  
+
+corrplot(phytogroup_wq72_subset, method = "color", tl.cex=1.5, tl.col="black", number.cex = 2, number.digits=2, cl.cex = 1)
+```
+
+```{r}
+cyano2 <- select(phytogroup_wq72,Cyanobacteria, CL, PS, TB, CN, DO, pH, TM, NOx)
+
+x_vars <- colnames(cyano2)[colnames(cyano2) != "Cyanobacteria"]
+
+regression_results <- data.frame(dependent_variable = character(),
+                                  independent_variable = character(),
+                                  coefficient = numeric(),
+                                  p_value = numeric(),
+                                  stringsAsFactors = FALSE)
+
+for (x_var in x_vars) {
+  lm_result <- lm(paste("Cyanobacteria ~", x_var), data = cyano2)
+  
+  result_row <- data.frame(
+    dependent_variable = "Cyanobacteria",
+    independent_variable = x_var,
+    coefficient = coef(lm_result)[2],  
+    p_value = summary(lm_result)$coefficients[2, 4]  
+  )
+  
+  regression_results <- rbind(regression_results, result_row)
+}
+
+print(regression_results)
+```
+
+```{r}
+green2 <- select(phytogroup_wq72,Chlorophyta, CL, PS, TB, CN, DO, pH, TM, NOx)
+
+x_vars <- colnames(green2)[colnames(green2) != "Chlorophyta"]
+
+regression_results <- data.frame(dependent_variable = character(),
+                                  independent_variable = character(),
+                                  coefficient = numeric(),
+                                  p_value = numeric(),
+                                  stringsAsFactors = FALSE)
+
+for (x_var in x_vars) {
+  lm_result <- lm(paste("Chlorophyta ~", x_var), data = green2)
+  
+  result_row <- data.frame(
+    dependent_variable = "Chlorophyta",
+    independent_variable = x_var,
+    coefficient = coef(lm_result)[2],  
+    p_value = summary(lm_result)$coefficients[2, 4]  
+  )
+  
+  regression_results <- rbind(regression_results, result_row)
+}
+
+print(regression_results)
+```
+
+```{r}
+diatom2 <- select(phytogroup_wq72,Bacillariophyta, CL, PS, TB, CN, DO, pH, TM, NOx)
+
+x_vars <- colnames(diatom2)[colnames(diatom2) != "Bacillariophyta"]
+
+regression_results <- data.frame(dependent_variable = character(),
+                                  independent_variable = character(),
+                                  coefficient = numeric(),
+                                  p_value = numeric(),
+                                  stringsAsFactors = FALSE)
+
+for (x_var in x_vars) {
+  lm_result <- lm(paste("Bacillariophyta ~", x_var), data = diatom2)
+  
+  result_row <- data.frame(
+    dependent_variable = "Bacillariophyta",
+    independent_variable = x_var,
+    coefficient = coef(lm_result)[2],  
+    p_value = summary(lm_result)$coefficients[2, 4]  
+  )
+  
+  regression_results <- rbind(regression_results, result_row)
+}
+
+print(regression_results)
+```
+
+```{r}
+charophyta2 <- select(phytogroup_wq72, Charophyta, CL, PS, TB, CN, DO, pH, TM, NOx)
+
+x_vars <- colnames(charophyta2)[colnames(charophyta2) != "Charophyta"]
+
+regression_results <- data.frame(dependent_variable = character(),
+                                  independent_variable = character(),
+                                  coefficient = numeric(),
+                                  p_value = numeric(),
+                                  stringsAsFactors = FALSE)
+
+for (x_var in x_vars) {
+  lm_result <- lm(paste("Charophyta ~", x_var), data = charophyta2)
+  
+  result_row <- data.frame(
+    dependent_variable = "Charophyta",
+    independent_variable = x_var,
+    coefficient = coef(lm_result)[2],  
+    p_value = summary(lm_result)$coefficients[2, 4]  
+  )
+  
+  regression_results <- rbind(regression_results, result_row)
+}
+
+print(regression_results)
+```
+
+```{r}
+cryptophya2 <- select(phytogroup_wq72,Cryptophyta, CL, PS, TB, CN, DO, pH, TM, NOx)
+
+x_vars <- colnames(cryptophya2)[colnames(cryptophya2) != "Cryptophyta"]
+
+regression_results <- data.frame(dependent_variable = character(),
+                                  independent_variable = character(),
+                                  coefficient = numeric(),
+                                  p_value = numeric(),
+                                  stringsAsFactors = FALSE)
+
+for (x_var in x_vars) {
+  lm_result <- lm(paste("Cryptophyta ~", x_var), data = cryptophya2)
+  
+  result_row <- data.frame(
+    dependent_variable = "Cryptophyta",
+    independent_variable = x_var,
+    coefficient = coef(lm_result)[2], 
+    p_value = summary(lm_result)$coefficients[2, 4]  
+  )
+  
+  regression_results <- rbind(regression_results, result_row)
+}
+
+print(regression_results)
+```
+
+```{r}
+haptophyta2 <- select(phytogroup_wq72,Haptophyta, CL, PS, TB, CN, DO, pH, TM, NOx)
+
+x_vars <- colnames(haptophyta2)[colnames(haptophyta2) != "Haptophyta"]
+
+regression_results <- data.frame(dependent_variable = character(),
+                                  independent_variable = character(),
+                                  coefficient = numeric(),
+                                  p_value = numeric(),
+                                  stringsAsFactors = FALSE)
+
+for (x_var in x_vars) {
+  lm_result <- lm(paste("Haptophyta ~", x_var), data = haptophyta2)
+  
+  result_row <- data.frame(
+    dependent_variable = "Haptophyta",
+    independent_variable = x_var,
+    coefficient = coef(lm_result)[2],  
+    p_value = summary(lm_result)$coefficients[2, 4]  
+  )
+  
+  regression_results <- rbind(regression_results, result_row)
+}
+
+print(regression_results)
+```
+
+```{r}
+ochrophyta2 <- select(phytogroup_wq72,Ochrophyta, CL, PS, TB, CN, DO, pH, TM, NOx)
+
+x_vars <- colnames(ochrophyta2)[colnames(ochrophyta2) != "Ochrophyta"]
+
+regression_results <- data.frame(dependent_variable = character(),
+                                  independent_variable = character(),
+                                  coefficient = numeric(),
+                                  p_value = numeric(),
+                                  stringsAsFactors = FALSE)
+
+for (x_var in x_vars) {
+  lm_result <- lm(paste("Ochrophyta ~", x_var), data = ochrophyta2)
+  
+  result_row <- data.frame(
+    dependent_variable = "Ochrophyta",
+    independent_variable = x_var,
+    coefficient = coef(lm_result)[2],  
+    p_value = summary(lm_result)$coefficients[2, 4]  
+  )
+  
+  regression_results <- rbind(regression_results, result_row)
+}
+
+print(regression_results)
+```
+
+```{r}
+euglenozoa2 <- select(phytogroup_wq72,Euglenozoa, CL, PS, TB, CN, DO, pH, TM, NOx)
+
+x_vars <- colnames(euglenozoa2)[colnames(euglenozoa2) != "Euglenozoa"]
+
+regression_results <- data.frame(dependent_variable = character(),
+                                  independent_variable = character(),
+                                  coefficient = numeric(),
+                                  p_value = numeric(),
+                                  stringsAsFactors = FALSE)
+
+for (x_var in x_vars) {
+  lm_result <- lm(paste("Euglenozoa ~", x_var), data = euglenozoa2)
+  
+  result_row <- data.frame(
+    dependent_variable = "Euglenozoa",
+    independent_variable = x_var,
+    coefficient = coef(lm_result)[2],  
+    p_value = summary(lm_result)$coefficients[2, 4]  
+  )
+  
+  regression_results <- rbind(regression_results, result_row)
+}
+
+print(regression_results)
+```
+
+```{r}
+miozoa2 <- select(phytogroup_wq72,Miozoa, CL, PS, TB, CN, DO, pH, TM, NOx)
+
+x_vars <- colnames(miozoa2)[colnames(miozoa2) != "Miozoa"]
+
+regression_results <- data.frame(dependent_variable = character(),
+                                  independent_variable = character(),
+                                  coefficient = numeric(),
+                                  p_value = numeric(),
+                                  stringsAsFactors = FALSE)
+
+for (x_var in x_vars) {
+  lm_result <- lm(paste("Miozoa ~", x_var), data = miozoa2)
+  
+  result_row <- data.frame(
+    dependent_variable = "Miozoa",
+    independent_variable = x_var,
+    coefficient = coef(lm_result)[2],  
+    p_value = summary(lm_result)$coefficients[2, 4]  
+  )
+  
+  regression_results <- rbind(regression_results, result_row)
+}
+
+print(regression_results)
+```
+
+```{r}
+diversity_corr_analysis<-read.csv("Diversity_Correlation_Analysis.csv")
+
+new_means <- diversity_corr_analysis %>%
+  group_by(Lake) %>%
+  mutate(across(c(Chla_corr_ug.L, Phosphorus_mg.L, Turbidity_NTU, Conductivity_uS.cm, DO_mg.L, pH, Temperature_degC, NOx_mg.L),
+                ~ mean(., na.rm = TRUE),
+                .names = "{.col}_new")) %>% ungroup() %>%
+  mutate(across(c(Chla_corr_ug.L_new, Phosphorus_mg.L_new, Turbidity_NTU_new, Conductivity_uS.cm_new, DO_mg.L_new, pH_new, Temperature_degC_new, NOx_mg.L_new), ~scale(.)[,1])) %>%
+  mutate(Month=as_factor(Month)) 
+
+div_lme <- lmer(Richness ~ Chla_corr_ug.L_new + (1|Month) + (1|Lake), data = new_means)
+
+summary(div_lme)
+coef(div_lme)$Lake[2][[1]][[1]]
+```
+
+```{r}
+r2(div_lme)
+lme_em <- emmeans(div_lme, "Chla_corr_ug.L_new")
+
+chl_test<- joint_tests(div_lme)
+
+ggplot(data = new_means, aes(x = Chla_corr_ug.L_new, y = Richness))+
+geom_point()+
+geom_smooth(method = "lm")
+```
+
+```{r}
+pvals <- list()
+slopes <- list()
+vars <- c("X._Developed", "X._Forest", "X._Grassland_Shrub", "X._Agriculture", "Watershed_Area.Lake_Area", "Mean_Annual_Precip_cm", "Latitude", "Longitude", "Chla_corr_ug.L_new", "Phosphorus_mg.L_new", "Turbidity_NTU_new", "Conductivity_uS.cm_new", "DO_mg.L_new", "pH_new", "Temperature_degC_new", "NOx_mg.L_new", "Total_BV")
+
+for(i in 1:length(vars)) {
+  #rhs <- paste0(vars[[i]],"+ (1|Month) +(1|Lake)")
+  fit <-lmer(data=new_means, paste0("Richness ~", vars[i],"+ (1|Month) +(1|Lake)"))
+  slopes[i] <- coef(fit)$Lake[2][[1]][[1]]
+  pvals[i] <- joint_tests(fit)$p.value[[1]]
+}
+  names(slopes) <- vars
+  names(pvals) <- vars
+  
+  rich_results <- tibble(variable = vars, slopes = slopes, pvals = pvals)
+```
+
+```{r}
+community_data <- select(diversity_corr_analysis, -Month, -Lake, -X._Developed, -X._Forest, -X._Grassland_Shrub, -X._Agriculture, -Watershed_Area.Lake_Area, -Mean_Annual_Precip_cm, -Latitude, -Longitude, -Chla_corr_ug.L, -Phosphorus_mg.L, -Turbidity_NTU, -Conductivity_uS.cm, -DO_mg.L, -pH, -Temperature_degC, -NOx_mg.L, -Total_BV, -Richness)
+
+shannon_diversity.samp <- diversity(community_data, index = "shannon") #<--by sample
+
+print(shannon_diversity.samp)
+
+shannon_diversity_df <- data.frame(Shannon_Diversity = shannon_diversity.samp)
+
+csv_file <- "shannon_diversity_samp.csv"
+
+write.csv(shannon_diversity_df, file = csv_file, row.names = FALSE)
+
+shannon_diversity109 <- diversity(bv_total, index = "shannon") #<--by lake
+
+print(shannon_diversity109)
+
+lake_names109 <- rownames(bv_total) 
+
+alpha_diversity_df109 <- data.frame(Sample = lake_names109, Shannon_Diversity = shannon_diversity109)
+
+csv_file <- "shannon_alphadiversity109.csv"
+write.csv(alpha_diversity_df109, file = csv_file, row.names = FALSE)
+```
+
+```{r}
+shannon.pvals <- list()
+shannon.slopes <- list()
+vars <- c("X._Developed", "X._Forest", "X._Grassland_Shrub", "X._Agriculture", "Watershed_Area.Lake_Area", "Mean_Annual_Precip_cm", "Latitude", "Longitude", "Chla_corr_ug.L_new", "Phosphorus_mg.L_new", "Turbidity_NTU_new", "Conductivity_uS.cm_new", "DO_mg.L_new", "pH_new", "Temperature_degC_new", "NOx_mg.L_new", "Total_BV")
+
+for(i in 1:length(vars)) {
+  #rhs <- paste0(vars[[i]],"+ (1|Month) +(1|Lake)")
+  fit <-lmer(data=new_means, paste0("Shannon_Diversity ~", vars[i],"+ (1|Month) +(1|Lake)"))
+  shannon.slopes[i] <- coef(fit)$Lake[2][[1]][[1]]
+  shannon.pvals[i] <- joint_tests(fit)$p.value[[1]]
+}
+  names(shannon.slopes) <- vars
+  names(shannon.pvals) <- vars
+  
+  shannon_results <- tibble(variable = vars, slopes = shannon.slopes, pvals = shannon.pvals)
+```
+
+```{r}
+bv.pvals <- list()
+bv.slopes <- list()
+vars <- c("X._Developed", "X._Forest", "X._Grassland_Shrub", "X._Agriculture", "Watershed_Area.Lake_Area", "Mean_Annual_Precip_cm", "Latitude", "Longitude", "Chla_corr_ug.L_new", "Phosphorus_mg.L_new", "Turbidity_NTU_new", "Conductivity_uS.cm_new", "DO_mg.L_new", "pH_new", "Temperature_degC_new", "NOx_mg.L_new", "Shannon_Diversity", "Richness")
+
+for(i in 1:length(vars)) {
+  #rhs <- paste0(vars[[i]],"+ (1|Month) +(1|Lake)")
+  fit <-lmer(data=new_means, paste0("Total_BV ~", vars[i],"+ (1|Month) +(1|Lake)"))
+  bv.slopes[i] <- coef(fit)$Lake[2][[1]][[1]]
+  bv.pvals[i] <- joint_tests(fit)$p.value[[1]]
+}
+  names(bv.slopes) <- vars
+  names(bv.pvals) <- vars
+  
+  bv_results <- tibble(variable = vars, slopes = bv.slopes, pvals = bv.pvals)
+```
+
+```{r}
+chl_turb_bv<-read.csv("chl_turb_bv2.csv")
+
+chl_bv <- lm(Chla_corr_ug.L ~ Total_BV, data = chl_bv_data)
+summary(chl_bv)
+anova(chl_bv)
+residuals_need <- resid(chl_bv)
+
+cat("Coefficients:\n")
+print(summary(chl_bv)$coefficients)
+
+cat("\nR-squared:", summary(chl_bv)$r.squared, "\n")
+
+figure4 <- ggplot(data = chl_bv_data, aes(x = Total_BV, y = Chla_corr_ug.L)) +
+  geom_point(size = 1.5, alpha = 0.6) +  
+  geom_smooth(method = "lm") +           
+  scale_x_continuous(trans = "log10") +
+  scale_y_continuous(trans = "log10") +
+  theme_classic() +
+  labs(x = expression(paste("Total Biovolume (", mm^3, "/L)")), 
+       y = expression(paste("Chlorophyll a (", mu, "g/L)"))) + 
+    theme(axis.title = element_text(size = 10),  
+          axis.text = element_text(size = 10))  
+
+ggsave("figure4.png", plot = figure4, height=9, width=8.5, unit = "cm", dpi = 600)
+```
+
+```{r}
+residuals_need_df <- data.frame(Residuals = residuals_need)
+
+write.csv(residuals_need_df, file = "residuals_need_df.csv", row.names = FALSE)
+write.csv(new_means, file = "new_means.csv", row.names = FALSE)
+
+new_means_resid<-read.csv("new_means_resid.csv")
+
+residual.pvals <- list()
+residual.slopes <- list()
+vars <- c("X._Developed", "X._Forest", "X._Grassland_Shrub", "X._Agriculture", "Watershed_Area.Lake_Area", "Mean_Annual_Precip_cm", "Latitude", "Longitude", "Chla_corr_ug.L_new", "Phosphorus_mg.L_new", "Turbidity_NTU_new", "Conductivity_uS.cm_new", "DO_mg.L_new", "pH_new", "Temperature_degC_new", "NOx_mg.L_new", "Total_BV", "Shannon_Diversity", "Richness")
+
+for(i in 1:length(vars)) {
+  #rhs <- paste0(vars[[i]],"+ (1|Month) +(1|Lake)")
+  fit <-lmer(data=new_means_resid, paste0("Residuals ~", vars[i],"+ (1|Month) +(1|Lake)"))
+  residual.slopes[i] <- coef(fit)$Lake[2][[1]][[1]]
+  residual.pvals[i] <- joint_tests(fit)$p.value[[1]]
+}
+  names(residual.slopes) <- vars
+  names(residual.pvals) <- vars
+  
+  residual_results <- tibble(variable = vars, slopes = residual.slopes, pvals = residual.pvals)
+```
+
+```{r}
+bv_total<-read.csv("bv_total.csv", row.names=1)
+class_total109<-read.csv("class_total109.csv", row.names=1)
+sublanduse_total109<-read.csv("sublanduse_total109.csv", row.names=1)
+```
+
+```{r}
+(sublanduse_total109.pearson <- cor(sublanduse_total109))
+round(sublanduse_total109.pearson, 2)
+
+corrplot(sublanduse_total109.pearson, method = "color")
+```
+
+```{r}
+bv_total109_mds2<-metaMDS(log10(bv_total+1),  k=2, try=100, autotransform=FALSE, halfchange=TRUE)
+bv_total109_mds3<-metaMDS(log10(bv_total+1),  k=3, try=100, autotransform=FALSE, halfchange=TRUE)
+
+bv_total109_mds2
+bv_total109_mds3
+```
+
+```{r}
+bv_total109_mds2.pts<-bv_total109_mds2$points[, c("MDS1", "MDS2")]
+
+ggplot(data.frame(bv_total109_mds2.pts))+
+  geom_point(aes(MDS1, MDS2), alpha=0.7)+
+  theme_classic()+
+  coord_equal()+
+  labs(x="NMDS1", y="NMDS2")
+```
+
+```{r}
+bv_total109_mds3.pts<-bv_total109_mds3$points[, c("MDS1", "MDS2", "MDS3")]
+
+ggplot(data.frame(bv_total109_mds3.pts))+
+  geom_point(aes(MDS1, MDS2), alpha=0.7)+
+  theme_classic()+
+  coord_equal()+
+  labs(x="NMDS1", y="NMDS2")
+```
+
+```{r}
+ggplot(data.frame(bv_total109_mds3.pts))+
+  geom_point(aes(MDS3, MDS1), alpha=0.7)+
+  theme_classic()+
+  coord_equal()+
+  labs(x="NMDS3", y="NMDS1")
+```
+
+```{r}
+bv_total109_mds2r<-MDSrotate(bv_total109_mds2, sublanduse_total109$UL)  
+
+plot(bv_total109_mds2r)
+```
+
+```{r}
+bv_total109_mds3r<-MDSrotate(bv_total109_mds3, sublanduse_total109[,c(1,5)]) 
+```
+
+```{r}
+bv_total109_mds2r.pts<-bv_total109_mds2r$points[, c("MDS1", "MDS2")]
+
+ggplot(data.frame(bv_total109_mds2r.pts))+
+  geom_point(aes(MDS1, MDS2, color=class_total109$Ecoregion, size=sublanduse_total109$PRECIP), alpha=0.7)+
+  theme_classic()+
+  coord_equal()+
+  labs(x="NMDS1", y="NMDS2", color="Ecoregion", size="Mean Annual Precipitation (cm)")
+```
+
+```{r}
+bv_total109_mds3r.pts<-bv_total109_mds3r$points[, c("MDS1", "MDS2","MDS3")]
+
+ggplot(data.frame(bv_total109_mds3r.pts))+
+  geom_point(aes(MDS1, MDS2, size=sublanduse_total109$PRECIP, color=class_total109$Ecoregion), alpha=0.7)+
+  theme_classic()+
+  coord_equal()+
+  labs(x="NMDS1", y="NMDS2", size="Mean Annual Precipitation (cm)", color="Ecoregion")
+```
+
+```{r}
+bv_total109_mds2r.fit<-envfit(bv_total109_mds2r, sublanduse_total109, permutations=999)
+
+bv_total109_mds2r.fit
+```
+
+```{r}
+#sublanduse_total109UL<-select(sublanduse_total109, UL) <--to plot only UL
+
+bv_total109_mds3r.fit<-envfit(bv_total109_mds3r, sublanduse_total109, permutations=999)
+
+bv_total109_mds3r.fit
+```
+
+```{r}
+bv_total109_mds2r.vecs <- data.frame(scores(bv_total109_mds2r.fit, display = "vectors"))
+bv_total109_mds2r.vecs <- cbind(bv_total109_mds2r.vecs, sublanduse_total109 = rownames(bv_total109_mds2r.vecs))
+
+bv_total109_mds2r.vecs
+```
+
+```{r}
+bv_total109_mds3r.vecs <- data.frame(scores(bv_total109_mds3r.fit, display = "vectors"))
+bv_total109_mds3r.vecs <- cbind(bv_total109_mds3r.vecs, sublanduse_total109 = rownames(bv_total109_mds3r.vecs))
+
+bv_total109_mds3r.vecs
+```
+
+```{r}
+bv_total_2d_plot<-ggplot(data.frame(bv_total109_mds2r.pts)) +
+  geom_point(aes(MDS1, MDS2, size=sublanduse_total109$PRECIP, color=class_total109$Ecoregion), alpha=0.5) +
+   geom_segment(data = bv_total109_mds2r.vecs,
+               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm")), color = "black") +
+  geom_text(data = bv_total109_mds2r.vecs, aes(x = NMDS1, y = NMDS2, label = sublanduse_total109),
+            size = 2, nudge_y=0.05, nudge_x=-0.01)+
+  theme_classic()+
+  coord_equal()+
+  labs(x="NMDS1", y="NMDS2", color="Ecoregion", size="Mean Annual Precipitation (cm)")
+```
+
+```{r}
+bv_total_3d_plot<-ggplot(data.frame(bv_total109_mds3r.pts)) +
+  geom_point(aes(MDS1, MDS2, size=sublanduse_total109$PRECIP, color=class_total109$EcoregionA), alpha=0.5) +
+   geom_segment(data = bv_total109_mds3r.vecs,
+               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm")), color = "black") +
+  geom_text(data = bv_total109_mds3r.vecs, aes(x = NMDS1, y = NMDS2, label = sublanduse_total109),
+            size = 6, nudge_y=0.01, nudge_x=0.1)+
+  theme_classic()+
+  coord_equal()+
+  theme(
+    text = element_text(size = 10) 
+  ) +
+  labs(x="NMDS1", y="NMDS2", color="Ecoregion", size="Mean Annual Precipitation (cm)") +
+  theme( text = element_text(size = 10),  
+    axis.title = element_text(size = 10),  
+    axis.text = element_text(size = 10),  
+    legend.text = element_text(size = 10),  
+    legend.title = element_text(size = 10)  
+  )
+
+ggsave("NMDS3r_109.png", height=5, width=7, dpi=600)
+```
+
+```{r}
+bv_total_no_na<-read.csv("bv_total_no_na.csv", row.names=1)
+wq_total_no_na<-read.csv("wq_total_no_na.csv", row.names=1)
+class_total72<-read.csv("class_total72.csv", row.names=1)
+```
+
+```{r}
+(wq_total_no_na.pearson <- cor(wq_total_no_na)) 
+round(wq_total_no_na.pearson, 2)
+
+corrplot(wq_total_no_na.pearson, method = "color")
+```
+
+```{r}
+bv_total_no_na_mds2<-metaMDS(log10(bv_total_no_na+1),  k=2, try=100, autotransform=FALSE, halfchange=TRUE)
+bv_total_no_na_mds3<-metaMDS(log10(bv_total_no_na+1),  k=3, try=100, autotransform=FALSE, halfchange=TRUE)
+
+bv_total_no_na_mds2
+bv_total_no_na_mds3
+```
+
+```{r}
+bv_total_no_na_mds2.pts<-bv_total_no_na_mds2$points[, c("MDS1", "MDS2")]
+
+ggplot(data.frame(bv_total_no_na_mds2.pts))+
+  geom_point(aes(MDS1, MDS2), alpha=0.7)+
+  theme_classic()+
+  coord_equal()+
+  labs(x="NMDS1", y="NMDS2")
+```
+
+```{r}
+bv_total_no_na_mds3.pts<-bv_total_no_na_mds3$points[, c("MDS1", "MDS2", "MDS3")]
+
+ggplot(data.frame(bv_total_no_na_mds3.pts))+
+  geom_point(aes(MDS1, MDS2), alpha=0.7)+
+  theme_classic()+
+  coord_equal()+
+  labs(x="NMDS1", y="NMDS2")
+```
+
+```{r}
+ggplot(data.frame(bv_total_no_na_mds3.pts))+
+  geom_point(aes(MDS3, MDS1), alpha=0.7)+
+  theme_classic()+
+  coord_equal()+
+  labs(x="NMDS3", y="NMDS1")
+```
+
+```{r}
+bv_total_no_na_mds2r<-MDSrotate(bv_total_no_na_mds2, wq_total_no_na$Chla_corr_ug.L) 
+
+plot(bv_total_no_na_mds2r)
+```
+
+```{r}
+bv_total_no_na_mds3r<-MDSrotate(bv_total_no_na_mds3, wq_total_no_na[,c(1,2)]) 
+```
+
+```{r}
+bv_total_no_na_mds2r.pts<-bv_total_no_na_mds2r$points[, c("MDS1", "MDS2")]
+
+ggplot(data.frame(bv_total_no_na_mds2r.pts))+
+  geom_point(aes(MDS1, MDS2, color=class_total72$Ecoregion, size=class_total72$PRECIP), alpha=0.7)+
+  theme_classic()+
+  coord_equal()+
+  labs(x="NMDS1", y="NMDS2", color="Ecoregion", size="Mean Annual Precipitation (cm)")
+```
+
+```{r}
+bv_total_no_na_mds3r.pts<-bv_total_no_na_mds3r$points[, c("MDS1", "MDS2","MDS3")]
+
+ggplot(data.frame(bv_total_no_na_mds3r.pts))+
+  geom_point(aes(MDS1, MDS2, size=class_total72$PRECIP, color=class_total72$Ecoregion), alpha=0.7)+
+  theme_classic()+
+  coord_equal()+
+  labs(x="NMDS1", y="NMDS2", size="Mean Annual Precipitation (cm)", color="Ecoregion")
+```
+
+```{r}
+bv_total_no_na_mds2r.fit<-envfit(bv_total_no_na_mds2r, wq_total_no_na, permutations=999)
+
+bv_total_no_na_mds2r.fit
+```
+
+```{r}
+wq_total_no_naSIG<-select(wq_total_no_na, Chla_corr_ug.L, Phosphorus_mg.L, Turbidity_NTU, Conductivity_uS.cm, pH_XX, Temperature_degC, UL_XX) #<---to plot only significant variables
+
+bv_total_no_na_mds3r.fit<-envfit(bv_total_no_na_mds3r, wq_total_no_naSIG, permutations=999)
+
+bv_total_no_na_mds3r.fit
+```
+
+```{r}
+bv_total_no_na_mds2r.vecs <- data.frame(scores(bv_total_no_na_mds2r.fit, display = "vectors"))
+bv_total_no_na_mds2r.vecs <- cbind(bv_total_no_na_mds2r.vecs, wq_total_no_na = rownames(bv_total_no_na_mds2r.vecs))
+
+bv_total_no_na_mds2r.vecs
+```
+
+```{r}
+bv_total_no_na_mds3r.vecs <- data.frame(scores(bv_total_no_na_mds3r.fit, display = "vectors"))
+bv_total_no_na_mds3r.vecs <- cbind(bv_total_no_na_mds3r.vecs, wq_total_no_na = rownames(bv_total_no_na_mds3r.vecs))
+
+bv_total_no_na_mds3r.vecs
+```
+
+```{r}
+bv_no_na_2d_plot<-ggplot(data.frame(bv_total_no_na_mds2r.pts)) +
+  geom_point(aes(MDS1, MDS2, size=class_total72$AVG_TOTAL_BV, color=class_total72$Ecoregion), alpha=0.5) +
+   geom_segment(data = bv_total_no_na_mds2r.vecs,
+               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm")), color = "black") +
+  geom_text(data = bv_total_no_na_mds2r.vecs, aes(x = NMDS1, y = NMDS2, label = wq_total_no_na),
+            size = 2, nudge_y=0.05, nudge_x=-0.01)+
+  theme_classic()+
+  coord_equal()+
+  labs(x="NMDS1", y="NMDS2", color="Ecoregion", size="Total Biovolume (mm3/L)")
+```
+
+```{r}
+bv_no_na_3d_plot<-ggplot(data.frame(bv_total_no_na_mds3r.pts)) +
+  geom_point(aes(MDS1, MDS2, size=class_total72$AVG_TOTAL_BV, color=class_total72$EcoregionA), alpha=0.5) +
+   geom_segment(data = bv_total_no_na_mds3r.vecs,
+               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm")), color = "black") +
+  geom_text_repel(data = bv_total_no_na_mds3r.vecs %>%
+                      mutate(rowname = str_match(wq_total_no_na, '([^_]+)_')[, 2]), 
+                  aes(x = NMDS1, y = NMDS2, label = rowname),
+            size = 4, nudge_y=0.05, nudge_x=0.04)+
+  theme_classic()+
+  coord_equal()+
+  labs(x = "NMDS1", y = "NMDS2", color = "Ecoregion", size = expression(paste("Total Biovolume (", mm^3, "/L)"))) +
+  theme(text = element_text(size = 10),  
+    axis.title = element_text(size = 10),  
+    axis.text = element_text(size = 10),  
+    legend.text = element_text(size = 10),  
+    legend.title = element_text(size = 10)  
+  )
+
+ggsave("NMDS3r_72.png", height=5, width=7, dpi=600)
+```
+
+```{r}
+rvalues109<-read.csv("109rvalues.csv")
+
+ggplot(rvalues109, aes(x = r, y = reorder(Variable, Order))) +
+  geom_bar(stat = "identity", fill = "skyblue4") +
+  labs(x = "Correlation (r)", y = NULL) +
+  theme_classic() +
+  theme(
+    text = element_text(size = 10)  
+  ) +
+  xlim(0.0, 0.6)
+
+ggsave("rvalues109_plot.png", height=8.5, width=8.5, unit="cm", dpi=600)
+
+rvalues72 <-read.csv("72rvalues.csv")
+
+ggplot(rvalues72, aes(x = r, y = reorder(Variable, Order))) +
+  geom_bar(stat = "identity", fill = "skyblue4") +
+  labs(x = "Correlation (r)", y = NULL) +
+  theme_classic() +
+  theme(
+    text = element_text(size = 10)  
+  )
+
+ggsave("rvalues72_plot.png", height=8.5, width=8.5, unit="cm", dpi=600)
+```
+
