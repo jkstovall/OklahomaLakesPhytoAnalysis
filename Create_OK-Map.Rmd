@@ -12,7 +12,15 @@ library(tidyverse)
 library(ggmap)
 library(sf)
 library(tigris)
+library(ggplot2)
+library(ggspatial)
 ```
+
+```{r}
+here() 
+here::i_am("analysis/data/derived_data/FullTidiedEnvData.csv") 
+```
+
 
 ```{r read in data with points}
 sites <- read_csv(here("analysis/data/derived_data/FullTidiedEnvData.csv"))|>
@@ -47,6 +55,7 @@ This is actually not necessary unless we want to get a basemap from Google's map
 Make the map
 ```{r}
 
+tick_length <- 0.1
 
 ok_map <- ggplot()+ #base ggplot call
   #call layer with our ecoregion shapes (ecoregions in column NA_L3NAME)
@@ -58,23 +67,34 @@ ok_map <- ggplot()+ #base ggplot call
   #call layer to map site points - we could link these to any characteristics of the site (e.g., median biomass, precip) and use shapes or color or size to show that additional info 
   geom_point(data = sites, aes(y = lat, x = lon),
              inherit.aes = FALSE,  size = 4, shape = 21, color = "black")+
+  geom_segment(data = data.frame(lon = seq(floor(min(sites$lon)), ceiling(max(sites$lon)), by = 1)),
+               aes(x = lon, xend = lon, y = floor(min(sites$lat)), yend = floor(min(sites$lat)) - tick_length), 
+               color = "black") +
+  # Latitude tick marks
+  geom_segment(data = data.frame(lat = seq(floor(min(sites$lat)), ceiling(max(sites$lat)), by = 1)),
+               aes(x = floor(min(sites$lon)), xend = floor(min(sites$lon)) - tick_length, y = lat, yend = lat), 
+               color = "black") +
+  # Longitude and latitude lines
+  coord_sf(expand = FALSE) +
+ annotation_north_arrow(location = "bl", which_north = "true", 
+                         pad_x = unit(1.6, "cm"), pad_y = unit(1.5, "cm"),
+                         style = north_arrow_fancy_orienteering) +
+  annotation_scale(location = "bl", width_hint = 0.2, pad_x = unit(1, "cm"), pad_y = unit(1, "cm")) +
   #finally, mess with the theme to get the overall look in better shape
   theme_classic()+
-  theme(axis.text = element_blank(),
+  theme(axis.text = element_text(size=8.5),
         axis.ticks = element_blank(),
         axis.title = element_blank(),
         legend.title = element_blank(),
-        legend.position = c(0.17,0.34),
+        legend.position.inside = c(0.17,0.34),
         legend.background = element_blank(),
-        legend.text = element_text(size = 12, face = "bold"),
+        legend.text = element_text(size = 8.5, face = "bold"),
         axis.line = element_blank())
+        #plot.background = element_rect(color = "black", size = 1))  # Thin outer line as a border
+
+ggsave("ok_map_with_annotations.png", plot = ok_map, width = 8, height = 4.5, dpi = 600)
 
 #write the map to file - I'm just saying this is Fig 1
-ggsave(ok_map, file = here("analysis/paper/Fig1_OK-Map.png"), width = 8, height = 4.5)
+#ggsave(ok_map, file = here("analysis/paper/Fig1_OK-Map.png"), width = 8, height = 4.5)
   
 ```
-
-   
-
-
-
