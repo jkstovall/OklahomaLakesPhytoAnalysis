@@ -1,5 +1,5 @@
 # OklahomaLakesPhytoAnalysis
-This project includes all the raw data and R scripts used for the analyses and data visualization for the manuscript Stovall et al. "Regional and local drivers of phytoplankton community composition and biodiversity in Oklahoma lakes". Briefly, it uses phytoplankton biovolume data in addition to landscape, watershed, and physiochemical data among multiple lakes to explare various relationships between each of these factors and other metrics of biodiversity. It also contains the R script used to create the site map for the manuscript. This can be used for community data analysis across spatial scales.
+This project includes all the raw data and R scripts used for the analyses and data visualization for the manuscript Stovall et al. "Spatial distribution of rare and common phytoplankton taxa is controlled by geospatial and physiochemical variables". Briefly, it uses phytoplankton biovolume data in addition to landscape, watershed, and physiochemical data among multiple lakes to explare various relationships between each of these factors and other metrics of biodiversity. It also contains the R script used to create the site map for the manuscript. This can be used for community data analysis across spatial scales.
 
 ##Table of Contents
 - [Installation](#installation)
@@ -71,6 +71,8 @@ All phytoplankton taxa nomenclature columns to be read as Kingdom_Phylum_Class_O
 Total_BV: total biovolume of the sample (mm^3/L)
 Richness: genus richness (total number of unique taxa observed in the sample)
 Shannon_Diversity: Shannon Diversity Index
+
+Lake_Names.csv ---> This CSV file contains a list of the specific lake names used for the Lakes of Oklahoma database search query
 
 Stovall et al. OWRB Analysis.rmd --> This R Markdown file includes all of the code used to perform the statistical analyses and produce the figures for Stovall et al. "Regional and local drivers of phytoplankton community composition and biodiversity in Oklahoma lakes".
 
